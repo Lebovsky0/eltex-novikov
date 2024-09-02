@@ -12,6 +12,7 @@ void list_files(const char *path, char **files, int *n_files);
 void create_new_file(const char *filename);
 void read_file_content(const char *filename);
 void create_new_folder(const char *path);
+void draw_help_bar(WINDOW *win);
 
 int main() {
     initscr();
@@ -29,12 +30,14 @@ int main() {
         list_files(paths[i], files[i], &n_files[i]);
     }
 
-    WINDOW *left_win = newwin(LINES, COLS / 2, 0, 0);
-    WINDOW *right_win = newwin(LINES, COLS / 2, 0, COLS / 2);
+    WINDOW *left_win = newwin(LINES - 2, COLS / 2, 0, 0);  // Уменьшили высоту на 2 строки
+    WINDOW *right_win = newwin(LINES - 2, COLS / 2, 0, COLS / 2);  // Уменьшили высоту на 2 строки
+    WINDOW *help_bar = newwin(1, COLS, LINES - 1, 0);  // Добавили новое окно для подсказки
 
     while (1) {
         draw_panel(left_win, highlight[0], paths[0], files[0], n_files[0]);
         draw_panel(right_win, highlight[1], paths[1], files[1], n_files[1]);
+        draw_help_bar(help_bar);  // Рисуем панель подсказок
 
         int ch = getch();
         switch (ch) {
@@ -105,6 +108,12 @@ void draw_panel(WINDOW *win, int highlight, char *path, char **files, int n_file
         wattroff(win, A_REVERSE);
     }
 
+    wrefresh(win);
+}
+
+void draw_help_bar(WINDOW *win) {
+    werase(win);
+    mvwprintw(win, 0, 0, "F1: Help | Tab: Switch Panel | Up/Down: Navigate | Enter: Open | w: New File | c: New Folder | r: Read File | q: Quit");
     wrefresh(win);
 }
 
