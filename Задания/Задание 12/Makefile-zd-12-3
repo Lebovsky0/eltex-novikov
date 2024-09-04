@@ -1,0 +1,12 @@
+# Makefile для задания 3
+CC = gcc
+CFLAGS = -Wall -Wextra -std=c99
+TARGET = my_shell
+
+all: $(TARGET)
+
+$(TARGET): $(TARGET).c
+	$(CC) $(CFLAGS) -o $(TARGET) $(TARGET).c
+
+clean:
+	rm -f $(TARGET)
