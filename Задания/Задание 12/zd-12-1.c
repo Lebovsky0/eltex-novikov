@@ -1,38 +1,39 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/wait.h>
+#include <string.h>
+#include <sys/wait.h> // Подключаем заголовок для функции wait
 
 int main() {
     int pipefd[2];
-    pid_t cpid;
-    char buf;
+    pid_t pid;
+    char message[] = "Hi!";
+    char buffer[10];
 
     if (pipe(pipefd) == -1) {
-        perror("pipe");
-        exit(EXIT_FAILURE);
+        perror("Ошибка при создании канала");
+        exit(1);
     }
 
-    cpid = fork();
-    if (cpid == -1) {
-        perror("fork");
-        exit(EXIT_FAILURE);
-    }
+    pid = fork();
 
-    if (cpid == 0) {    /* Дочерний процесс */
-        close(pipefd[1]);          /* Закрываем дескриптор для записи */
-        while (read(pipefd[0], &buf, 1) > 0) {
-            write(STDOUT_FILENO, &buf, 1);
-        }
-        write(STDOUT_FILENO, "\n", 1);
+    if (pid < 0) {
+        perror("Ошибка при создании процесса");
+        exit(1);
+    } else if (pid == 0) {
+        // Дочерний процесс
+        close(pipefd[1]); // Закрываем дескриптор для записи
+        read(pipefd[0], buffer, sizeof(buffer) - 1);
+        buffer[sizeof(buffer) - 1] = '\0'; // Гарантируем завершающий нулевой символ
+        printf("Дочерний процесс получил сообщение: %s\n", buffer);
         close(pipefd[0]);
-        _exit(EXIT_SUCCESS);
-
-    } else {            /* Родительский процесс */
-        close(pipefd[0]);          /* Закрываем дескриптор для чтения */
-        write(pipefd[1], "Hi!", 3);
-        close(pipefd[1]);          /* Закрываем дескриптор для записи, завершая запись */
-        wait(NULL);                /* Ожидаем завершения дочернего процесса */
-        exit(EXIT_SUCCESS);
+    } else {
+        // Родительский процесс
+        close(pipefd[0]); // Закрываем дескриптор для чтения
+        write(pipefd[1], message, strlen(message) + 1);
+        close(pipefd[1]);
+        wait(NULL); // Ожидаем завершения дочернего процесса
     }
+
+    return 0;
 }

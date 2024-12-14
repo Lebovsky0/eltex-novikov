@@ -4,28 +4,16 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#define FIFO_NAME "/tmp/myfifo"
-
 int main() {
-    int fd;
-    char buf[10];
+    const char *fifo = "/tmp/myfifo";
+    char buffer[10];
 
-    /* Открываем канал на чтение */
-    fd = open(FIFO_NAME, O_RDONLY);
-    if (fd == -1) {
-        perror("open");
-        exit(EXIT_FAILURE);
-    }
-
-    /* Читаем сообщение из канала */
-    read(fd, buf, sizeof(buf));
-    printf("Received: %s\n", buf);
-
-    /* Закрываем дескриптор */
+    int fd = open(fifo, O_RDONLY);
+    read(fd, buffer, sizeof(buffer));
+    printf("Клиент получил сообщение: %s\n", buffer);
     close(fd);
 
-    /* Удаляем именованный канал */
-    unlink(FIFO_NAME);
+    unlink(fifo); // Удаляем именованный канал
 
     return 0;
 }

@@ -3,28 +3,19 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
-#define FIFO_NAME "/tmp/myfifo"
+#include <string.h>
 
 int main() {
-    int fd;
-    char *msg = "Hi!";
+    const char *fifo = "/tmp/myfifo";
+    char message[] = "Hi!";
 
-    /* Создаем именованный канал (FIFO) */
-    mkfifo(FIFO_NAME, 0666);
+    mkfifo(fifo, 0666);
 
-    /* Открываем канал на запись */
-    fd = open(FIFO_NAME, O_WRONLY);
-    if (fd == -1) {
-        perror("open");
-        exit(EXIT_FAILURE);
-    }
-
-    /* Записываем сообщение в канал */
-    write(fd, msg, sizeof(msg));
-
-    /* Закрываем дескриптор */
+    int fd = open(fifo, O_WRONLY);
+    write(fd, message, strlen(message) + 1);
     close(fd);
+
+    printf("Сервер отправил сообщение: %s\n", message);
 
     return 0;
 }

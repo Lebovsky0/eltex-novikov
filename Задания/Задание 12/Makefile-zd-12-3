@@ -1,12 +1,11 @@
-# Makefile для задания 3
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c99
-TARGET = my_shell
+TARGET = zd-12-3
 
 all: $(TARGET)
 
-$(TARGET): $(TARGET).c
-	$(CC) $(CFLAGS) -o $(TARGET) $(TARGET).c
+$(TARGET): task3.c
+	$(CC) $(CFLAGS) -o $(TARGET) task3.c
 
 clean:
 	rm -f $(TARGET)

@@ -1,16 +1,15 @@
-# Makefile для задания 2
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c99
-SERVER = server
-CLIENT = client
+SERVER = zd-12-2server
+CLIENT = zd-12-2client
 
 all: $(SERVER) $(CLIENT)
 
-$(SERVER): $(SERVER).c
-	$(CC) $(CFLAGS) -o $(SERVER) $(SERVER).c
+$(SERVER): server.c
+	$(CC) $(CFLAGS) -o $(SERVER) server.c
 
-$(CLIENT): $(CLIENT).c
-	$(CC) $(CFLAGS) -o $(CLIENT) $(CLIENT).c
+$(CLIENT): client.c
+	$(CC) $(CFLAGS) -o $(CLIENT) client.c
 
 clean:
 	rm -f $(SERVER) $(CLIENT)

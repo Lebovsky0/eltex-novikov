@@ -1,82 +1,86 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
 #include <sys/wait.h>
+#include <string.h>
 
-#define MAX_COMMAND_LEN 1024
-#define MAX_ARGS 64
+#define MAX_COMMAND_LENGTH 100
 
-void execute_command(char *cmd) {
-    char *args[MAX_ARGS];
-    char *token = strtok(cmd, " \t\n");
+void execute_command(char *command) {
+    char *args[MAX_COMMAND_LENGTH / 2 + 1]; // предполагаем, что аргументы разделены пробелами
+    char *token = strtok(command, " ");
     int i = 0;
 
-    while (token != NULL && i < MAX_ARGS - 1) {
+    while (token != NULL) {
         args[i++] = token;
-        token = strtok(NULL, " \t\n");
+        token = strtok(NULL, " ");
     }
     args[i] = NULL;
 
-    execvp(args[0], args);
-    perror("execvp");
-    exit(EXIT_FAILURE);
-}
-
-void parse_and_execute(char *line) {
-    int pipefd[2];
-    pid_t pid;
-    char *cmd1, *cmd2;
-    char *pipe_pos = strchr(line, '|');
-
-    if (pipe_pos != NULL) {
-        *pipe_pos = '\0';   // Разделяем строку по символу '|'
-        cmd1 = line;
-        cmd2 = pipe_pos + 1;
-
-        if (pipe(pipefd) == -1) {
-            perror("pipe");
-            exit(EXIT_FAILURE);
-        }
-
-        pid = fork();
-        if (pid == -1) {
-            perror("fork");
-            exit(EXIT_FAILURE);
-        }
-
-        if (pid == 0) {   // Дочерний процесс (выполняет первую команду)
-            close(pipefd[0]);   // Закрываем дескриптор для чтения
-            dup2(pipefd[1], STDOUT_FILENO);  // Перенаправляем stdout в канал
-            close(pipefd[1]);
-            execute_command(cmd1);
-        } else {           // Родительский процесс (выполняет вторую команду)
-            close(pipefd[1]);   // Закрываем дескриптор для записи
-            dup2(pipefd[0], STDIN_FILENO);   // Перенаправляем stdin из канала
-            close(pipefd[0]);
-            wait(NULL);         // Ожидаем завершения дочернего процесса
-            execute_command(cmd2);
-        }
-    } else {
-        execute_command(line);  // Если конвейера нет, просто выполняем команду
+    if (execvp(args[0], args) == -1) {
+        perror("Ошибка при выполнении команды");
+        exit(1);
     }
 }
 
 int main() {
-    char line[MAX_COMMAND_LEN];
+    char command[MAX_COMMAND_LENGTH];
+    char *commands[2];
 
     while (1) {
-        printf("shell> ");
-        if (fgets(line, sizeof(line), stdin) == NULL) {
-            perror("fgets");
-            exit(EXIT_FAILURE);
-        }
+        printf("Введите команду (или 'exit' для выхода): ");
+        fgets(command, sizeof(command), stdin);
 
-        if (strncmp(line, "exit", 4) == 0) {
+        command[strcspn(command, "\n")] = 0; // Убираем символ переноса строки
+
+        if (strcmp(command, "exit") == 0) {
             break;
         }
 
-        parse_and_execute(line);
+        int i = 0;
+        commands[i++] = strtok(command, "|");
+
+        while ((commands[i] = strtok(NULL, "|")) != NULL && i < 2) {
+            i++;
+        }
+
+        if (i == 1) {
+            // Обычная команда без конвейера
+            pid_t pid = fork();
+            if (pid == 0) {
+                execute_command(commands[0]);
+            } else {
+                wait(NULL);
+            }
+        } else if (i == 2) {
+            // Команда с конвейером
+            int pipefd[2];
+            pipe(pipefd);
+            pid_t pid1 = fork();
+
+            if (pid1 == 0) {
+                // Первый процесс
+                close(pipefd[0]); // Закрываем входное направление канала
+                dup2(pipefd[1], STDOUT_FILENO); // Перенаправляем stdout в канал
+                close(pipefd[1]);
+                execute_command(commands[0]);
+            }
+
+            pid_t pid2 = fork();
+
+            if (pid2 == 0) {
+                // Второй процесс
+                close(pipefd[1]); // Закрываем выходное направление канала
+                dup2(pipefd[0], STDIN_FILENO); // Перенаправляем stdin в канал
+                close(pipefd[0]);
+                execute_command(commands[1]);
+            }
+
+            close(pipefd[0]);
+            close(pipefd[1]);
+            waitpid(pid1, NULL, 0);
+            waitpid(pid2, NULL, 0);
+        }
     }
 
     return 0;
